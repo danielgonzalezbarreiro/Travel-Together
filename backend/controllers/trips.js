@@ -1,6 +1,6 @@
 const { getConnection } = require('../db');
 
-const { tripSchema, searchSchema } = require('./validations');
+const { tripSchema, searchSchema, allowJoinSchema } = require('./validations');
 
 //const { generateError } = require('../helpers')
 
@@ -73,7 +73,7 @@ async function getTrip(req, res, next) {
 
 // POST - /trips
 async function newTrip(req, res, next) {
-  //Meterlos en la base de datos
+  // Put in the database
   try {
     await tripSchema.validateAsync(req.body);
 
@@ -178,50 +178,121 @@ async function deleteTrip(req, res, next) {
   }
 }
 
-// POST - /trips/:id/choose
-async function chooseTrip(req, res, next) {
+// POST - /trips/join/:id
+async function joinTrip(req, res, next) {
   try {
-    const { id } = req.params;
-    const { choose_date } = req.body;
-
     const connection = await getConnection();
 
-    const [id_result] = await connection.query(
-      `SELECT * FROM travels
-      WHERE id = ?`,
+    const { id } = req.params;
+
+    //Checks if the trip exists
+    const [trip] = await connection.query(
+      'SELECT * FROM travels WHERE id=?',
       [id]
     );
 
-    const id_travel = id_result[0].id
-
-    if (!id_result[0].id) {
-      const error = new Error(`The trip with id ${id} does not exist`);
-      error.httpCode = 404;
+    if (!trip.length) {
+      const error = new Error(`The trip does not exist. Please choose another existing trip`);
+      error.httpCode = 400;
       throw error;
     }
 
-    //Check user_id of travel and choose_id its no the same. !Dont work
-    /*     if (id_result[0].user_id === req.auth.id) {
-          const error = new error(`You can't choose your trip`)
-          error.httpCode = 400;
-          throw error;
-        }
-     */
-    await connection.query(
-      'INSERT INTO user_choose_travel(id_user, id_travel, choose_date) VALUES(?, ?, NOW())',
-      [req.auth.id, id_travel, choose_date]
+    //Checks if the user is already the host
+    const [host] = await connection.query(
+      'SELECT * FROM travels WHERE id_user=? and id=?',
+      [req.auth.id, id]
     );
 
-    res.send({
-      id_user: req.auth.id,
-      id_travel: id_travel,
-    })
+    if (host.length) {
+      const error = new Error(`You can't join your own trip`);
+      error.httpCode = 400;
+      throw error;
+    }
+
+    //Checks if the user already joinned the trip
+    const [join] = await connection.query(
+      'SELECT * FROM user_choose_travel where id_user=? AND id_travel=?',
+      [req.auth.id, id]
+    );
+
+    if (join.length) {
+      const error = new Error(`You already joinned the trip`);
+      error.httpCode = 400;
+      throw error;
+    }
+
+    await connection.query(
+      'INSERT INTO user_choose_travel(id_user, id_travel, choose_date) VALUES(?, ?, NOW())',
+      [req.auth.id, id]
+    );
 
     connection.release();
+
+    res.send({
+      status: 'ok',
+      data: {
+        id_user: req.auth.id,
+        id_trip: id,
+      }
+    });
   } catch (error) {
     next(error);
   }
 }
+
+//PUT - /entries/join/:id
+async function allowJoin(req, res, next) {
+  try {
+    const connection = await getConnection();
+    const { id } = req.params;
+    const { id_user_join } = req.body;
+
+    //Checks if the user is the trip's host
+    const [host] = await connection.query(
+      'SELECT * from travels WHERE id_user=? and id=?',
+      [req.auth.id, id]
+    );
+
+    if (!host.length) {
+      const error = new Error(`You can't allow people if you didn't created the trip`);
+      error.httpCode = 400;
+      throw error;
+    }
+
+    //Checks if the id_user_join requested to join the trip
+    const [userJoin] = await connection.query(
+      'SELECT * FROM user_choose_travel where id_user=? and id_travel=? and user_admitted=0',
+      [id_user_join, id]
+    );
+
+    if (!userJoin.length) {
+      const error = new Error(`The user didnt asked to join or its already allowed`);
+      error.httpCode = 400;
+      throw error;
+    }
+
+    await allowJoinSchema.validateAsync(req.body);
+
+
+    await connection.query(
+      'UPDATE user_choose_travel SET user_admitted=1 WHERE id_user=? AND id_travel=?',
+      [id_user_join, id]
+    );
+
+    connection.release();
+
+    res.send({
+      status: 'ok',
+      data: {
+        id_trip: id,
+        id_user_join: id_user_join,
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 
 
 module.exports = {
@@ -230,6 +301,7 @@ module.exports = {
   editTrip,
   deleteTrip,
   getTrip,
-  chooseTrip
+  joinTrip,
+  allowJoin
 };
 

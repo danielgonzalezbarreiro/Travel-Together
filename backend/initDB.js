@@ -86,6 +86,7 @@ async function main() {
       id_user INT UNSIGNED REFERENCES users,
       id_travel INT UNSIGNED REFERENCES travels,
       choose_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      user_admitted boolean default false,
       PRIMARY KEY (id_user, id_travel),
       create_user_choose_travel TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       update_user_choose_travel TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

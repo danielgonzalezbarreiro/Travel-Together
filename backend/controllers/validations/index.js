@@ -45,6 +45,7 @@ const nifSchema = Joi.string()
 const birthdaySchema = Joi.string()
   .required()
   .error(generateError('Birthday format YYYY-MM-DD', 400))
+
 // Object Schemas
 const tripSchema = Joi.object().keys({
   locality: Joi.string()
@@ -101,6 +102,11 @@ const tripSchema = Joi.object().keys({
     )
 });
 
+
+const allowJoinSchema = Joi.object().keys({
+  id_user_join: Joi.number()
+});
+
 const userSchemaRegister = Joi.object().keys({
   email: emailSchema,
   password: passwordSchema,
@@ -138,5 +144,6 @@ module.exports = {
   userSchema,
   editUserSchema,
   editPasswordUserSchema,
-  userSchemaRegister
+  userSchemaRegister,
+  allowJoinSchema
 };

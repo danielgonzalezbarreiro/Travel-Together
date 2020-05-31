@@ -30,7 +30,8 @@ const {
   editTrip,
   deleteTrip,
   getTrip,
-  chooseTrip,
+  joinTrip,
+  allowJoin
 
 } = require('./controllers/trips')
 
@@ -66,7 +67,8 @@ app.get('/trips/:id', getTrip);
 app.post('/trips', userIsAuthenticated, newTrip); // Solo usuarios
 app.put('/trips/:id', userIsAuthenticated, editTrip); // Solo usuarios (que crearon esa entrada) o admin
 app.delete('/trips/:id', userIsAuthenticated, userIsAdmin, deleteTrip); // Solo admin 
-app.post('/trips/:id/choose', userIsAuthenticated, chooseTrip)
+app.post('/trips/join/:id', userIsAuthenticated, joinTrip)
+app.put('/trips/join/:id', userIsAuthenticated, allowJoin)
 
 // Error middleware
 app.use((error, req, res, next) => {
