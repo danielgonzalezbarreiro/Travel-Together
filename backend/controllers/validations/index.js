@@ -36,12 +36,6 @@ const userLoginSchema = Joi.string()
   .max(20)
   .error(generateError('Login user name required and max 20 characters', 400));
 
-const nifSchema = Joi.string()
-  .required()
-  .min(10)
-  .max(10)
-  .error(generateError('NIF required 10 characters', 400));
-
 const birthdaySchema = Joi.string()
   .required()
   .error(generateError('Birthday format YYYY-MM-DD', 400))
@@ -66,19 +60,11 @@ const tripSchema = Joi.object().keys({
         400
       )
     ),
-  departure_date: Joi.string()
+  date: Joi.string()
     .required()
     .error(
       generateError(
-        'The departure_date field is required and must be in date format',
-        400
-      )
-    ),
-  arrival_date: Joi.string()
-    .required()
-    .error(
-      generateError(
-        'The arrival_date field is required and must be in date format',
+        'The date field is required and must be in date format',
         400
       )
     ),
@@ -110,20 +96,19 @@ const allowJoinSchema = Joi.object().keys({
 const userSchemaRegister = Joi.object().keys({
   email: emailSchema,
   password: passwordSchema,
-  name: nameSchema,
+  profile_name: nameSchema,
   user_login: userLoginSchema,
-  nif: nifSchema,
   birthday: birthdaySchema
 });
 
 const userSchema = Joi.object().keys({
   email: emailSchema,
-  password: passwordSchema
+  user_password: passwordSchema
 });
 
 const editUserSchema = Joi.object().keys({
   email: emailSchema,
-  name: Joi.string()
+  user_login: Joi.string()
     .max(255)
     .error(
       generateError('The real name cannot exceed 255 characters', 400)

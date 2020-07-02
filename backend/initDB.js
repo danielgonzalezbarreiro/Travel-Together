@@ -25,12 +25,12 @@ async function main() {
       id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
       user_login VARCHAR(50) NOT NULL UNIQUE,
       user_password VARCHAR(255) UNIQUE NOT NULL,
-      nif VARCHAR(10) NOT NULL UNIQUE,
+      biography VARCHAR(200),
       email VARCHAR(50) NOT NULL UNIQUE,
-      name VARCHAR(50) NOT NULL,
+      profile_name VARCHAR(50) NOT NULL,
       birthday DATE NOT NULL,
       tlf VARCHAR(50),
-      address VARCHAR(50),
+      locality VARCHAR(50),
       avatar_img VARCHAR(50),
       role ENUM("normal", "admin") DEFAULT "normal" NOT NULL,
       active BOOLEAN DEFAULT false NOT NULL,
@@ -46,8 +46,7 @@ async function main() {
       id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
       description TEXT NOT NULL,
       locality VARCHAR(50) NOT NULL,
-      departure_date DATE NOT NULL,
-      arrival_date DATE NOT NULL,
+      date DATE NOT NULL,
       category varchar(50) NOT NULL,
       budget FLOAT DEFAULT 0,
       id_user INT UNSIGNED NOT NULL REFERENCES users,
@@ -80,6 +79,16 @@ async function main() {
       update_rate TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
 `);
+  await connection.query(`
+    CREATE TABLE follow (
+      id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      follower_id INT UNSIGNED REFERENCES users,
+      user_id INT UNSIGNED REFERENCES users,
+      create_rate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      update_rate TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+`);
+
 
   await connection.query(`
     CREATE TABLE user_choose_travel (
@@ -87,6 +96,7 @@ async function main() {
       id_travel INT UNSIGNED REFERENCES travels,
       choose_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       user_admitted boolean default false,
+      join_message VARCHAR(255),
       PRIMARY KEY (id_user, id_travel),
       create_user_choose_travel TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       update_user_choose_travel TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -97,8 +107,8 @@ async function main() {
   const password = await bcrypt.hash(process.env.DEFAULT_ADMIN_PASSWORD, 10);
 
   await connection.query(`
-        INSERT INTO users(user_password_last_update, email, user_password, role, name, active, user_login, NIF, birthday)
-        VALUES( UTC_TIMESTAMP, "danielgonzalezbarreiro@gmail.com", "${password}", "admin", "Daniel Gonzalez", true, "danixxz", "123456789X", "1996-06-25")
+        INSERT INTO users(user_password_last_update, email, user_password, role, profile_name, active, user_login, birthday)
+        VALUES( UTC_TIMESTAMP, "danielgonzalezbarreiro@gmail.com", "${password}", "admin", "Daniel Gonzalez", true, "danixxz", "1996-06-25")
       `);
 
   console.log('Initial structure created');

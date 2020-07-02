@@ -69,6 +69,49 @@ async function sendEmail({ email, title, content }) {
   await sgMail.send(msg);
 }
 
+// Send email to request host
+async function emailToHost({ email, user_login, title, content }) {
+  sgMail.setApiKey(process.env.SENDGRID_KEY);
+
+  const msg = {
+    to: email,
+    from: 'danielgonzalezbarreiro@gmail.com',
+    subject: title,
+    text: content,
+    html: `<div>
+      <h1>${user_login} quiere viajar contigo!</h1>
+      <p>${content}</p>  
+    </div>`
+  };
+
+  await sgMail.send(msg);
+}
+
+// Send email to acept user
+async function emailToUser({ email, title, content }) {
+  sgMail.setApiKey(process.env.SENDGRID_KEY);
+
+  const msg = {
+    to: email,
+    from: 'danielgonzalezbarreiro@gmail.com',
+    subject: title,
+    text: content,
+    html: `<div>
+      <h1>Te han aceptado para viajar!</h1>
+      <h2>Buen Viaje!</h2>
+      <p>${content}</p>  
+    </div>`
+  };
+
+  await sgMail.send(msg);
+}
+
+function generateError(message, code) {
+  const error = new Error(message);
+  if (code) error.httpCode = code;
+  return error;
+}
+
 function generateError(message, code) {
   const error = new Error(message);
   if (code) error.httpCode = code;
@@ -81,5 +124,7 @@ module.exports = {
   deletePhoto,
   randomString,
   sendEmail,
-  generateError
+  generateError,
+  emailToHost,
+  emailToUser
 };

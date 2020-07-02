@@ -2,9 +2,9 @@ const { getConnection } = require('../db');
 
 const { tripSchema, searchSchema, allowJoinSchema } = require('./validations');
 
-//const { generateError } = require('../helpers')
+const { emailToHost, emailToUser } = require('../helpers')
 
-// GET - /entries
+// GET - /trips
 async function listTrips(req, res, next) {
   try {
     const connection = await getConnection();
@@ -16,20 +16,22 @@ async function listTrips(req, res, next) {
       await searchSchema.validateAsync(search);
 
       result = await connection.query(
-        `SELECT * FROM travels
-        WHERE travels.locality LIKE ? OR travels.description LIKE ?
-        ORDER BY travels.departure_date DESC`,
-        [`%${search}%`, `%${search}%`]
+        `select t.*, u.profile_name as profile_name from travels t
+         left join users u on
+         u.id = t.id_user where t.id_user = u.id and
+        t.locality LIKE ? OR t.description LIKE ? OR t.date LIKE ?
+        ORDER BY t.date DESC`,
+        [`%${search}%`, `%${search}%`, `%${search}%`]
       );
     } else {
       result = await connection.query(
-        `SELECT * FROM travels
-        ORDER BY travels.departure_date DESC`
+        `select t.*, u.profile_name as profile_name, u.avatar_img as avatar_img from travels t
+         left join users u on
+         u.id = t.id_user where t.id_user = u.id`
       );
     }
 
     const [trips] = result;
-
     connection.release();
 
     res.send({
@@ -41,7 +43,7 @@ async function listTrips(req, res, next) {
   }
 }
 
-// GET - /entries/:id
+// GET - /trips/:id
 async function getTrip(req, res, next) {
   try {
     const { id } = req.params;
@@ -49,8 +51,9 @@ async function getTrip(req, res, next) {
     const connection = await getConnection();
 
     const [result] = await connection.query(
-      `SELECT * FROM travels
-      WHERE id = ?`,
+      `select t.*, u.profile_name as profile_name, u.avatar_img as avatar_img from travels t
+       left join users u on
+       u.id = t.id_user where t.id = ?`,
       [id]
     );
 
@@ -77,7 +80,7 @@ async function newTrip(req, res, next) {
   try {
     await tripSchema.validateAsync(req.body);
 
-    const { description, locality, departure_date, arrival_date, category, budget } = req.body;
+    const { description, locality, date, category, budget } = req.body;
 
     const connection = await getConnection();
 
@@ -86,8 +89,8 @@ async function newTrip(req, res, next) {
     const [
       result
     ] = await connection.query(
-      'INSERT INTO travels(description, locality, departure_date, arrival_date, category, budget, id_user) VALUES(?, ?, ?, ?, ?, ?, ?)',
-      [description, locality, departure_date, arrival_date, category, budget, req.auth.id]
+      'INSERT INTO travels(description, locality, date, category, budget, id_user) VALUES(?, ?, ?, ?, ?, ?)',
+      [description, locality, date, category, budget, req.auth.id]
     );
 
     connection.release();
@@ -97,8 +100,7 @@ async function newTrip(req, res, next) {
       data: {
         id: result.insertId,
         locality: locality,
-        departure_date: departure_date,
-        arrival_date: arrival_date,
+        date: date,
         category: category,
         budget: budget,
         description: description,
@@ -113,7 +115,7 @@ async function newTrip(req, res, next) {
 // PUT - /trips/:id
 async function editTrip(req, res, next) {
   try {
-    const { locality, departure_date, arrival_date, category, budget, description } = req.body;
+    const { locality, date, category, budget, description } = req.body;
     const { id } = req.params;
 
     await tripSchema.validateAsync(req.body);
@@ -141,8 +143,8 @@ async function editTrip(req, res, next) {
 
 
     await connection.query(
-      'UPDATE travels SET locality=?, departure_date=?, arrival_date=?, category=?, budget=?,  description=? WHERE id=?',
-      [locality, departure_date, arrival_date, category, budget, description, id]
+      'UPDATE travels SET locality=?, date=?, category=?, budget=?,  description=? WHERE id=?',
+      [locality, date, category, budget, description, id]
     );
 
     connection.release();
@@ -152,8 +154,7 @@ async function editTrip(req, res, next) {
       data: {
         id: id,
         locality: locality,
-        departure_date: departure_date,
-        arrival_date: arrival_date,
+        date: date,
         category: category,
         budget: budget,
         description: description,
@@ -168,10 +169,60 @@ async function editTrip(req, res, next) {
 async function deleteTrip(req, res, next) {
   try {
     const { id } = req.params;
+    const connection = await getConnection();
+
+    await connection.query('DELETE FROM travels WHERE id=?', [id]);
+
+    connection.release()
 
     res.send({
       status: 'ok',
       message: `The trip with id ${id} has been deleted`
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// GET - /trips/join:id
+async function getTripPeople(req, res, next) {
+  try {
+    const { id } = req.params;
+    const connection = await getConnection();
+    const [results] = await connection.query(
+      'Select * from user_choose_travel where id_travel=? AND user_admitted=1',
+      [id]
+    );
+
+    connection.release();
+
+    res.send({
+      status: 'ok',
+      data: results
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+//GET -- /trips/allJoins/:id
+async function getAllTripPeople(req, res, next) {
+  try {
+    const { id } = req.params;
+    const connection = await getConnection();
+    const [results] = await connection.query(
+      `Select a.*, b.*
+      FROM user_choose_travel a
+      left join users b
+      on a.id_user = b.id
+      where id_travel=?`,
+      [id]
+    );
+    connection.release();
+
+    res.send({
+      status: 'ok',
+      data: results
     });
   } catch (error) {
     next(error);
@@ -215,15 +266,47 @@ async function joinTrip(req, res, next) {
       [req.auth.id, id]
     );
 
+    const [user_login] = await connection.query(
+      'SELECT user_login FROM users where id=?',
+      [req.auth.id]
+    )
+
     if (join.length) {
       const error = new Error(`You already joinned the trip`);
       error.httpCode = 400;
       throw error;
     }
 
+    //await joinEntrySchema.validateAsync(req.body);
+
+    const { join_message } = req.body;
+
+    const [emailHost] = await connection.query(
+      `SELECT a.email 
+      from users a
+      left join travels b
+      on a.id = b.id_user
+      where b.id=?`,
+      [id]
+    );
+    console.log(emailHost);
+    try {
+      await emailToHost({
+        email: emailHost,
+        user_login: user_login,
+        title: 'Alguien se ha apuntado a tu evento!',
+        content: `El usuario te ha enviado este mensaje junto con la peticion: ${join_message}`
+      });
+    } catch (error) {
+      console.error(error.response.body);
+      throw new Error(
+        'Error sending the confirmation email. Try again later.'
+      );
+    }
+
     await connection.query(
-      'INSERT INTO user_choose_travel(id_user, id_travel, choose_date) VALUES(?, ?, NOW())',
-      [req.auth.id, id]
+      'INSERT INTO user_choose_travel(id_user, id_travel, choose_date, join_message) VALUES(?, ?, NOW(), ?)',
+      [req.auth.id, id, join_message]
     );
 
     connection.release();
@@ -233,6 +316,7 @@ async function joinTrip(req, res, next) {
       data: {
         id_user: req.auth.id,
         id_trip: id,
+        join_message: join_message
       }
     });
   } catch (error) {
@@ -240,7 +324,7 @@ async function joinTrip(req, res, next) {
   }
 }
 
-//PUT - /entries/join/:id
+//PUT - /trips/join/:id
 async function allowJoin(req, res, next) {
   try {
     const connection = await getConnection();
@@ -264,7 +348,7 @@ async function allowJoin(req, res, next) {
       'SELECT * FROM user_choose_travel where id_user=? and id_travel=? and user_admitted=0',
       [id_user_join, id]
     );
-
+    console.log(id_user_join)
     if (!userJoin.length) {
       const error = new Error(`The user didnt asked to join or its already allowed`);
       error.httpCode = 400;
@@ -272,6 +356,23 @@ async function allowJoin(req, res, next) {
     }
 
     await allowJoinSchema.validateAsync(req.body);
+
+    const [useremail] = await connection.query(
+      'select email from users where id=?',
+      [id_user_join]
+    );
+    try {
+      await emailToUser({
+        email: useremail,
+        title: 'Te han aceptado',
+        content: `Que disfruteis de vuestro viaje!`
+      });
+    } catch (error) {
+      console.error(error.response.body);
+      throw new Error(
+        'Error sending the confirmation email. Try again later.'
+      );
+    }
 
 
     await connection.query(
@@ -293,6 +394,54 @@ async function allowJoin(req, res, next) {
   }
 }
 
+//GET -- /trips/usertrips/:id
+async function getUserTrips(req, res, next) {
+  try {
+    const { id } = req.params;
+    const connection = await getConnection();
+    const [results] = await connection.query(
+      `Select a.*, b.*
+      from user_choose_travel a 
+      left join travels b 
+      on a.id_travel = b.id
+      where a.id_user=?`,
+      [id]
+    );
+
+    connection.release();
+
+    res.send({
+      status: 'ok',
+      data: results
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+//GET -- /trips/usertripshosted/:id
+async function getUserTripsHosted(req, res, next) {
+  try {
+    const { id } = req.params;
+    const connection = await getConnection();
+    const [results] = await connection.query(
+      `SELECT *
+      FROM travels
+      WHERE id_user=?`,
+      [id]
+    );
+
+    connection.release();
+
+    res.send({
+      status: 'ok',
+      data: results
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 
 
 module.exports = {
@@ -302,6 +451,10 @@ module.exports = {
   deleteTrip,
   getTrip,
   joinTrip,
-  allowJoin
+  allowJoin,
+  getTripPeople,
+  getAllTripPeople,
+  getUserTrips,
+  getUserTripsHosted
 };
 

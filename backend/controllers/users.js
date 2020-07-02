@@ -20,7 +20,7 @@ const {
   formatDatetoDB
 } = require('../helpers');
 
-//POST -/user
+//POST -/users
 
 async function newUser(req, res, next) {
   let connection;
@@ -29,8 +29,9 @@ async function newUser(req, res, next) {
     await userSchemaRegister.validateAsync(req.body);
 
     connection = await getConnection();
-    const { email, password, user_login, name, nif, birthday } = req.body;
 
+    const { email, password, user_login, profile_name, birthday } = req.body;
+    console.log(req.body)
     // Check if user email is already in the db
     const [
       existing
@@ -61,10 +62,10 @@ async function newUser(req, res, next) {
 
     await connection.query(
       `
-      INSERT INTO users (user_password_last_update, email, user_password, role, registrationCode, user_login, name, nif, birthday)
-      VALUES(UTC_TIMESTAMP, ?, ?, "normal", ?, ?, ?, ?, ?)
+      INSERT INTO users (user_password_last_update, email, user_password, role, registrationCode, user_login, profile_name, birthday)
+      VALUES(UTC_TIMESTAMP, ?, ?, "normal", ?, ?, ?, ?)
     `,
-      [email, dbPassword, registrationCode, user_login, name, nif, birthday]
+      [email, dbPassword, registrationCode, user_login, profile_name, birthday]
     );
 
     res.send({
@@ -109,6 +110,32 @@ async function validateUser(req, res, next) {
     if (connection) connection.release();
   }
 }
+// GET - /username
+async function getUserName(req, res, next) {
+  try {
+    const { id } = req.body
+    console.log(req.body)
+
+    const connection = await getConnection();
+
+    let result;
+    result = await connection.query(
+      `SELECT profile_name
+      FROM users
+      WHERE id=?`, [id],
+    );
+    const [profile_name] = result;
+
+    connection.release();
+
+    res.send({
+      status: 'ok',
+      data: profile_name
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 // GET - /users/:id
 async function getUser(req, res, next) {
@@ -120,7 +147,7 @@ async function getUser(req, res, next) {
 
     const [result] = await connection.query(
       `
-      SELECT id, create_user, email, role, name, avatar_img, birthday, tlf, address 
+      SELECT id, create_user, email, role, profile_name, biography, avatar_img, birthday, tlf, locality, user_login 
       FROM users WHERE id=?  
     `,
       [id]
@@ -135,17 +162,17 @@ async function getUser(req, res, next) {
 
     const payload = {
       registrationDate: userData.create_user,
-      name: userData.name,
-      avatar: userData.avatar_img,
+      user_login: userData.user_login,
+      tlf: userData.tlf,
+      email: userData.email,
+      avatar_img: userData.avatar_img
     };
 
-    if (userData.id === req.auth.id || req.auth.role === 'admin') {
-      payload.email = userData.email;
-      payload.role = userData.role;
-      payload.birthday = userData.birthday;
-      payload.tlf = userData.tlf;
-      payload.address = userData.address;
-    }
+    payload.profile_name = userData.profile_name;
+    payload.role = userData.role;
+    payload.birthday = userData.birthday;
+    payload.locality = userData.locality;
+    payload.biography = userData.biography;
 
     res.send({
       status: 'ok',
@@ -160,12 +187,13 @@ async function getUser(req, res, next) {
 
 // POST - /users/login
 async function loginUser(req, res, next) {
+
   let connection;
 
   try {
     await userSchema.validateAsync(req.body);
 
-    const { email, password } = req.body;
+    const { email, user_password } = req.body;
 
     connection = await getConnection();
 
@@ -187,7 +215,7 @@ async function loginUser(req, res, next) {
 
     const [user] = dbUser;
 
-    const passwordsMath = await bcrypt.compare(password, user.user_password);
+    const passwordsMath = await bcrypt.compare(user_password, user.user_password);
 
     if (!passwordsMath) {
       throw generateError('Incorrect Password', 401);
@@ -203,7 +231,7 @@ async function loginUser(req, res, next) {
     res.send({
       status: 'ok',
       message: 'Correct login',
-      data: { token }
+      data: { token, user }
     });
   } catch (error) {
     next(error);
@@ -220,7 +248,9 @@ async function editUser(req, res, next) {
     await editUserSchema.validateAsync(req.body);
 
     const { id } = req.params;
-    const { name, email, address, tlf } = req.body;
+    console.log(id)
+    const { email, tlf, user_login } = req.body;
+    console.log(email)
 
     connection = await getConnection();
 
@@ -265,9 +295,9 @@ async function editUser(req, res, next) {
 
     await connection.query(
       `
-      UPDATE users SET name=?, email=?, avatar_img=?, address=?, tlf=? WHERE id=?
+      UPDATE users SET user_login=?, email=?, avatar_img=?, tlf=? WHERE id=?
     `,
-      [name, email, savedFileName, address, tlf, id]
+      [user_login, email, savedFileName, tlf, id]
     );
 
     res.send({ status: 'ok', message: 'User update' });
@@ -290,7 +320,6 @@ async function updatePasswordUser(req, res, next) {
     await editPasswordUserSchema.validateAsync(req.body);
 
     const { oldPassword, newPassword } = req.body;
-
     // Comprobar que el usuario del token es el mismo que el que vamos a cambiar la pass
 
     if (Number(id) !== req.auth.id) {
@@ -358,5 +387,6 @@ module.exports = {
   getUser,
   editUser,
   updatePasswordUser,
-  validateUser
+  validateUser,
+  getUserName
 };
