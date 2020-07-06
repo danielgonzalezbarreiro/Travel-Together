@@ -19,6 +19,7 @@ export function loginUser(email, password) {
       })
       setAuthToken(res.data.data.token);
       setIsAdmin(res.data.data.user.role);
+      console.log(res.data.data.user.role);
       localStorage.setItem('userID', res.data.data.user.id)
       console.log(res.data)
       resolve()
@@ -152,6 +153,18 @@ export function clearAdmin() {
 // RECUPERAR ROL DESDE LOCAL STORAGE
 export function getIsAdmin() {
   return localStorage.getItem(ROLE);
+}
+
+//COMPROBAR ROL
+export function checkAdmin() {
+  let role = false;
+  let isAdmin = getIsAdmin();
+  if (isAdmin === "admin") {
+    role = true;
+  } else {
+    role = false;
+  }
+  return role;
 }
 
 

@@ -1,16 +1,23 @@
 <template>
   <div>
     <div class="account">
-      <div class="user_login">
-        <p>{{ account.user_login }}</p>
+      <div class="userlogin">
+        <p>User Login:</p>
+        {{ '@'+account.user_login }}
       </div>
-      <div class="email">{{ account.email }}</div>
+      <div class="email">
+        <p>Email:</p>
+        {{ account.email }}
+      </div>
       <div class="password">Password</div>
+      <div v-show="showAdmin" class="admin">Administrar Travel Together</div>
     </div>
   </div>
 </template>
 
 <script>
+import { checkAdmin } from "../api/utils.js";
+
 export default {
   name: "SettingsComponent",
   data() {
@@ -20,7 +27,8 @@ export default {
     };
   },
   props: {
-    account: Object
+    account: Object,
+    showAdmin: Boolean
   },
   methods: {
     checkInfo() {
@@ -42,24 +50,50 @@ export default {
 .account {
   background-color: #1e1c2c;
   color: white;
-  height: 15rem;
+  height: 20rem;
   width: 50rem;
   display: grid;
   grid-template-columns: 100%;
-  grid-template-rows: 1fr 1fr 1fr;
-  grid-template-areas: "userlogin" "email" "password";
+  grid-template-rows: 1fr 1fr 1fr 1fr;
+  grid-template-areas: "userlogin" "email" "password" "admin";
 }
 .userlogin {
   grid-area: userlogin;
   align-self: center;
   justify-self: center;
+  display: flex;
+  color: #ff6d00;
+}
+
+.userlogin p {
+  margin-right: 0.5rem;
+  font-weight: bold;
 }
 
 .email {
   grid-area: email;
+  align-self: center;
+  justify-self: center;
+  display: flex;
+  color: #ff6d00;
+}
+
+.email p {
+  margin-right: 0.5rem;
+  font-weight: bold;
 }
 
 .password {
   grid-area: password;
+  align-self: center;
+  justify-self: center;
+  font-weight: bold;
+}
+
+.admin {
+  grid-area: admin;
+  align-self: center;
+  justify-self: center;
+  font-weight: bold;
 }
 </style>

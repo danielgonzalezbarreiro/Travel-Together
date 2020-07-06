@@ -41,8 +41,8 @@ async function newRating(req, res, next) {
   }
 }
 
-// GET - /rating/:id
-async function getRating(req, res, next) {
+// GET - /rating/avg/:id
+async function getRatingAvg(req, res, next) {
   try {
     const connection = await getConnection();
 
@@ -76,6 +76,37 @@ async function getRating(req, res, next) {
   }
 }
 
+// GET - /rating/:id
+async function getRating(req, res, next) {
+  try {
+    const connection = await getConnection();
+
+    const { id } = req.params
+
+    const result = await connection.query(
+      `select r.*, u.user_login as user_login from rates r
+       left join users u on
+       u.id = r.id_user_send where r.id_user_recive = ?`,
+      [id]
+    )
+
+    const [rates] = result
+    console.log(rates)
+
+    connection.release();
+
+    res.send({
+      status: 'ok',
+      data: rates
+    })
+
+  } catch (error) {
+    next(error)
+  }
+}
+
+
+
 // DELETE - /rating/:id
 async function deleteRating(req, res, next) {
   try {
@@ -100,5 +131,6 @@ async function deleteRating(req, res, next) {
 module.exports = {
   newRating,
   getRating,
-  deleteRating
+  deleteRating,
+  getRatingAvg
 }

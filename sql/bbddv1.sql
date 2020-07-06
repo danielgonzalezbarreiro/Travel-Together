@@ -69,6 +69,7 @@ select * from rates;
 select * from travels;
 select * from user_choose_travel;
 select * from rates;
+select * from follow;
 
 select t.*, u.profile_name as profile_name from travels t
 left join users u on
@@ -88,3 +89,8 @@ u.id = t.id_user where t.id_user = 1;
       FROM users WHERE id=1;
       
 DROP TABLE travels;
+
+SELECT AVG(points)
+       AS rate_media
+       FROM rates where id_user_recive = 1;
+       

@@ -40,6 +40,31 @@ async function processAndSavePhoto(uploadedImage) {
   return savedFileName;
 }
 
+// Save a photo and get filename
+async function processAndSavePhotoReel(uploadedImage) {
+  // Random File name to be saved
+  const savedFileName = `${uuid.v1()}.jpg`;
+
+  // Ensure the uploads path exists
+  await fs.ensureDir(imageUploadPath);
+
+  // Process image
+  const finalImage = sharp(uploadedImage.data);
+
+  // Check image size
+  const imageInfo = await finalImage.metadata();
+
+  // If image is wider than 500px resize it
+  if (imageInfo.width > 600 || imageInfo.height > 400) {
+    finalImage.resize({ width: 600, height: 400 });
+  }
+
+  // Save image
+  await finalImage.toFile(path.join(imageUploadPath, savedFileName));
+
+  return savedFileName;
+}
+
 // Delete a photo
 async function deletePhoto(imagePath) {
   await fs.unlink(path.join(imageUploadPath, imagePath));
@@ -112,12 +137,6 @@ function generateError(message, code) {
   return error;
 }
 
-function generateError(message, code) {
-  const error = new Error(message);
-  if (code) error.httpCode = code;
-  return error;
-}
-
 module.exports = {
   formatDateToDB,
   processAndSavePhoto,
@@ -126,5 +145,6 @@ module.exports = {
   sendEmail,
   generateError,
   emailToHost,
-  emailToUser
+  emailToUser,
+  processAndSavePhotoReel
 };

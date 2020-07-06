@@ -16,18 +16,19 @@ async function listTrips(req, res, next) {
       await searchSchema.validateAsync(search);
 
       result = await connection.query(
-        `select t.*, u.profile_name as profile_name from travels t
+        `select t.*, u.profile_name as profile_name, u.avatar_img as avatar_img, u.user_login as user_login from travels t
          left join users u on
          u.id = t.id_user where t.id_user = u.id and
         t.locality LIKE ? OR t.description LIKE ? OR t.date LIKE ?
-        ORDER BY t.date DESC`,
+        ORDER BY t.create_travel DESC`,
         [`%${search}%`, `%${search}%`, `%${search}%`]
       );
     } else {
       result = await connection.query(
-        `select t.*, u.profile_name as profile_name, u.avatar_img as avatar_img from travels t
+        `select t.*, u.profile_name as profile_name, u.avatar_img as avatar_img, u.user_login as user_login from travels t
          left join users u on
-         u.id = t.id_user where t.id_user = u.id`
+         u.id = t.id_user where t.id_user = u.id
+         ORDER BY t.create_travel DESC`
       );
     }
 
@@ -51,9 +52,14 @@ async function getTrip(req, res, next) {
     const connection = await getConnection();
 
     const [result] = await connection.query(
-      `select t.*, u.profile_name as profile_name, u.avatar_img as avatar_img from travels t
-       left join users u on
-       u.id = t.id_user where t.id = ?`,
+      `select t.*, u.profile_name as profile_name, 
+                    u.avatar_img as avatar_img, 
+                    u.user_login as user_login,
+                    uct.user_admitted as user_admitted
+      from travels t
+      left join users u on u.id = t.id_user 
+      left join user_choose_travel uct on uct.id_travel = t.id
+      where t.id = ?`,
       [id]
     );
 
@@ -394,6 +400,44 @@ async function allowJoin(req, res, next) {
   }
 }
 
+//DELETE - /trips/join/:id
+async function deleteJoin(req, res, next) {
+  try {
+    const connection = await getConnection();
+    const { id } = req.params;
+    const { id_user_join } = req.body;
+
+
+    //Checks if the user is the trip's host
+    const [host] = await connection.query(
+      'SELECT * from travels WHERE id_user=? and id=?',
+      [req.auth.id, id]
+    );
+
+    if (!host.length) {
+      const error = new Error(`You can't allow people if you didn't created the trip`);
+      error.httpCode = 400;
+      throw error;
+    }
+
+    await connection.query(
+      'DELETE FROM user_choose_travel WHERE id_user=? AND id_travel=?',
+      [id_user_join, id]
+    );
+
+    connection.release();
+
+    res.send({
+      status: 'ok',
+      data: {
+        res: res
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 //GET -- /trips/usertrips/:id
 async function getUserTrips(req, res, next) {
   try {
@@ -455,6 +499,7 @@ module.exports = {
   getTripPeople,
   getAllTripPeople,
   getUserTrips,
-  getUserTripsHosted
+  getUserTripsHosted,
+  deleteJoin
 };
 

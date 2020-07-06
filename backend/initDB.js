@@ -16,7 +16,10 @@ async function main() {
   await connection.query('DROP TABLE IF EXISTS travels');
   await connection.query('DROP TABLE IF EXISTS messages');
   await connection.query('DROP TABLE IF EXISTS rates');
+  await connection.query('DROP TABLE IF EXISTS follow');
+  await connection.query('DROP TABLE IF EXISTS reel');
   await connection.query('DROP TABLE IF EXISTS user_choose_travel');
+
 
   console.log('Creating tables')
 
@@ -84,12 +87,20 @@ async function main() {
       id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
       follower_id INT UNSIGNED REFERENCES users,
       user_id INT UNSIGNED REFERENCES users,
-      create_rate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      update_rate TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      create_follow TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      update_follow TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
 `);
-
-
+  await connection.query(`
+    CREATE TABLE reel (
+      id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      user_id INT UNSIGNED REFERENCES users,
+      photo VARCHAR(50) NOT NULL,
+      text TEXT NOT NULL,
+      create_photo TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      update_photo TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+`);
   await connection.query(`
     CREATE TABLE user_choose_travel (
       id_user INT UNSIGNED REFERENCES users,

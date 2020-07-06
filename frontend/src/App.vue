@@ -12,6 +12,12 @@
   src: local("Basier Square Regular"),
     url("assets/BasierSquare-Regular.woff") format("woff");
 }
+@font-face {
+  font-family: "Braxton";
+  font-style: normal;
+  font-weight: normal;
+  src: local("Braxton"), url("assets/Braxton.woff") format("woff");
+}
 
 * {
   background-color: #1e1c2c;

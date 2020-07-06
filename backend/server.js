@@ -20,7 +20,9 @@ const {
   loginUser,
   updatePasswordUser,
   validateUser,
-  getUserName
+  getUserName,
+  getAllUsers,
+  deleteUser
 } = require('./controllers/users');
 
 // Profile controllers
@@ -43,7 +45,8 @@ const {
   getTripPeople,
   getAllTripPeople,
   getUserTrips,
-  getUserTripsHosted
+  getUserTripsHosted,
+  deleteJoin
 
 } = require('./controllers/trips')
 
@@ -57,7 +60,8 @@ const {
 const {
   newRating,
   getRating,
-  deleteRating
+  deleteRating,
+  getRatingAvg
 } = require('./controllers/rating')
 
 // Follow controllers
@@ -65,8 +69,18 @@ const {
   newFollow,
   getFollowers,
   deleteFollow,
-  getIsFollow
+  getIsFollow,
+  getFollowing
 } = require('./controllers/followers')
+
+// reel controllers
+const {
+  newPhoto,
+  deletePhoto,
+  listPhotos,
+  getPhoto,
+  editPhoto
+} = require('./controllers/reel')
 
 // Auth middlewares
 const { userIsAuthenticated, userIsAdmin } = require('./middlewares/auth');
@@ -94,6 +108,8 @@ app.post('/users/:id/password', userIsAuthenticated, updatePasswordUser);
 app.get('/users/:id', userIsAuthenticated, getUser);
 app.put('/users/:id', userIsAuthenticated, editUser);
 app.get('/username', getUserName)
+app.get('/users', userIsAuthenticated, getAllUsers)
+app.delete('/users/:id', userIsAuthenticated, userIsAdmin, deleteUser)
 
 // Profile Routes
 app.put('/profile/:id', userIsAuthenticated, editUserProfile);
@@ -111,6 +127,7 @@ app.put('/trips/join/:id', userIsAuthenticated, allowJoin)
 app.get('/trips/allJoins/:id', userIsAuthenticated, getAllTripPeople)
 app.get('/trips/usertrips/:id', userIsAuthenticated, getUserTrips)
 app.get('/trips/usertripshosted/:id', userIsAuthenticated, getUserTripsHosted)
+app.delete('/trips/join/:id', userIsAuthenticated, deleteJoin)
 
 // Message Routes
 app.post('/message/:id', userIsAuthenticated, newMessage)
@@ -119,13 +136,24 @@ app.get('/message', userIsAuthenticated, getMessages)
 // Rating Routes
 app.post('/rating/:id', userIsAuthenticated, newRating)
 app.get('/rating/:id', userIsAuthenticated, getRating)
+app.get('/rating/avg/:id', userIsAuthenticated, getRatingAvg)
 app.delete('/rating/:id', userIsAuthenticated, userIsAdmin, deleteRating)
 
 // Follow Routes
 app.post('/follow/:id', userIsAuthenticated, newFollow)
 app.get('/followers/:id', userIsAuthenticated, getFollowers)
+app.get('/following/:id', userIsAuthenticated, getFollowing)
 app.delete('/follow/:id', userIsAuthenticated, deleteFollow)
 app.get('/follow/isfollow/:id', userIsAuthenticated, getIsFollow)
+
+
+// Reel Routes
+app.post('/reel', userIsAuthenticated, newPhoto)
+app.delete('/reel/:id', userIsAuthenticated, deletePhoto)
+app.get('/reel', userIsAuthenticated, listPhotos)
+app.get('/reel/:id', userIsAuthenticated, getPhoto)
+app.put('/reel/:id', userIsAuthenticated, editPhoto)
+
 
 // Error middleware
 app.use((error, req, res, next) => {

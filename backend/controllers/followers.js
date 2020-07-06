@@ -73,6 +73,35 @@ async function getFollowers(req, res, next) {
     next(error)
   }
 }
+
+// GET - /following/:id
+async function getFollowing(req, res, next) {
+  try {
+    const connection = await getConnection();
+
+    const { id } = req.params
+
+    const result = await connection.query(
+      `SELECT user_id FROM follow WHERE follower_id = ?`,
+      [id]
+    )
+
+    const [follow] = result
+
+    connection.release();
+
+    res.send({
+      status: 'ok',
+      data: follow
+    })
+
+  } catch (error) {
+    next(error)
+  }
+}
+
+
+
 // GET - /follow/isfollow/:id
 async function getIsFollow(req, res, next) {
   try {
@@ -133,5 +162,6 @@ module.exports = {
   newFollow,
   getFollowers,
   deleteFollow,
-  getIsFollow
+  getIsFollow,
+  getFollowing
 }

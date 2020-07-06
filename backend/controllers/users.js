@@ -185,6 +185,35 @@ async function getUser(req, res, next) {
   }
 }
 
+// GET - /users
+async function getAllUsers(req, res, next) {
+  let connection;
+
+  try {
+    connection = await getConnection();
+
+    const [result] = await connection.query(
+      `
+      SELECT * FROM users  
+    `,
+    );
+
+    // Throw 404 if no results
+    if (!result.length) {
+      throw generateError(`No hay ningun usuario registrado`, 404);
+    }
+
+    res.send({
+      status: 'ok',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  } finally {
+    if (connection) connection.release();
+  }
+}
+
 // POST - /users/login
 async function loginUser(req, res, next) {
 
@@ -381,6 +410,25 @@ async function updatePasswordUser(req, res, next) {
   }
 }
 
+// DELETE - /users/:id
+async function deleteUser(req, res, next) {
+  try {
+    const { id } = req.params;
+    const connection = await getConnection();
+
+    await connection.query('DELETE FROM users WHERE id=?', [id]);
+
+    connection.release()
+
+    res.send({
+      status: 'ok',
+      message: `The user with id ${id} has been deleted`
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   newUser,
   loginUser,
@@ -388,5 +436,7 @@ module.exports = {
   editUser,
   updatePasswordUser,
   validateUser,
-  getUserName
+  getUserName,
+  getAllUsers,
+  deleteUser
 };
