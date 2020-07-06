@@ -20,6 +20,9 @@
         <p class="message">{{lastRates[index].rate_text}}</p>
       </div>
     </div>
+    <div class="message" v-show="!test">
+      <p>Este usuario no ha sido valorado</p>
+    </div>
   </div>
 </template>
 
@@ -35,12 +38,26 @@ export default {
   name: "ProfileComponent",
   components: { StarRating },
   data() {
-    return {};
+    return {
+      test: false
+    };
   },
   props: {
     lastRates: Array
   },
-  methods: {}
+  methods: {
+    showRating() {
+      if (this.lastRates.length <= 0) {
+        this.test = false;
+      } else {
+        this.test = true;
+        console.log(this.lastRates);
+      }
+    }
+  },
+  created() {
+    this.showRating();
+  }
 };
 </script>
 
@@ -79,5 +96,13 @@ export default {
   justify-self: center;
   text-align: center;
   color: #ffaa00;
+}
+
+.message p {
+  text-align: center;
+  margin-top: 8rem;
+  font-size: 24px;
+  color: gray;
+  font-style: italic;
 }
 </style>

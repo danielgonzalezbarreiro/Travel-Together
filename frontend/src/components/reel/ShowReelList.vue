@@ -75,6 +75,7 @@ export default {
 .profile {
   background-color: #1e1c2c;
   grid-area: profile;
+  margin-left: 0.4rem;
   display: flex;
   border-radius: 25px;
 }

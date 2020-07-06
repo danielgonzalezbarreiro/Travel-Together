@@ -191,7 +191,11 @@ export default {
         .then(function(response) {
           //TIEMPO DE CARGA
           self.rates = response.data.data;
-          self.lastRates = self.rates.slice(self.rates.length - 3);
+          if (self.rates.length <= 3) {
+            self.lastRates = self.rates;
+          } else {
+            self.lastRates = self.rates.slice(self.rates.length - 3);
+          }
         })
         .catch(function(error) {
           if (error.response) {
@@ -259,9 +263,6 @@ export default {
       photoFormData.append("biography", this.biography);
       photoFormData.append("locality", this.locality);
       photoFormData.append("birthday", this.birthday);
-      if (this.file != null) {
-        photoFormData.append("avatar", this.file);
-      }
       axios
         .put(
           `http://localhost:3001/profile/${self.$route.params.id}`,

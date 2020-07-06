@@ -170,6 +170,7 @@ export default {
 .biography {
   grid-area: biography;
   justify-self: center;
+  text-align: center;
 }
 
 .biography p {

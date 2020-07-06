@@ -38,7 +38,7 @@ async function editUserProfile(req, res, next) {
 
     const [current] = await connection.query(
       `
-      SELECT id, avatar_img FROM users WHERE id=?
+      SELECT id FROM users WHERE id=?
     `,
       [id]
     );
@@ -52,30 +52,14 @@ async function editUserProfile(req, res, next) {
       throw generateError('You do not have permission to edit this user', 401);
     }
 
-    // Check if there is a uploaded avatar and process it
 
-    let savedFileName;
-
-    if (req.files && req.files.avatar) {
-      try {
-        savedFileName = await processAndSavePhoto(req.files.avatar);
-
-        if (current && current.avatar) {
-          await deletePhoto(current.avatar);
-        }
-      } catch (error) {
-        throw generateError('Can not process upload image. Try again.', 400);
-      }
-    } else {
-      savedFileName = current.avatar;
-    }
 
     // Update user
     await connection.query(
       `
-      UPDATE users SET profile_name=?, biography=?, locality=?, avatar_img=?, birthday=? WHERE id=?
+      UPDATE users SET profile_name=?, biography=?, locality=?, birthday=? WHERE id=?
     `,
-      [profile_name, biography, locality, savedFileName, birthday, id]
+      [profile_name, biography, locality, birthday, id]
     );
 
     res.send({ status: 'ok', message: 'User update' });

@@ -122,7 +122,7 @@ async function editPhoto(req, res, next) {
     }
 
     // Check if the authenticated user is the entry author or admin
-    if (current[0].id_user !== req.auth.id && req.auth.role !== 'admin') {
+    if (current[0].user_id !== req.auth.id && req.auth.role !== 'admin') {
       const error = new Error('No tienes permisos para editar esta entrada');
       error.httpCode = 401;
       throw error;
